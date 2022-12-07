@@ -13,6 +13,7 @@ import (
 	"github.com/ipfs/go-ipns"
 	ipns_pb "github.com/ipfs/go-ipns/pb"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -114,6 +115,13 @@ var IpnsVerifyRecordCmd = &cmds.Command{
 		}
 
 		pub, err := id.ExtractPublicKey()
+		if err != nil {
+			// Make sure it works with all those RSA that cannot be embedded into the
+			// Peer ID.
+			if len(entry.PubKey) > 0 {
+				pub, err = ic.UnmarshalPublicKey(entry.PubKey)
+			}
+		}
 		if err != nil {
 			return err
 		}
