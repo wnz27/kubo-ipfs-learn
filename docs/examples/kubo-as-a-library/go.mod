@@ -8,7 +8,7 @@ replace github.com/ipfs/kubo => ./../../..
 
 require (
 	github.com/ipfs/go-ipfs-files v0.2.0
-	github.com/ipfs/interface-go-ipfs-core v0.8.1
+	github.com/ipfs/interface-go-ipfs-core v0.8.2-0.20221213102858-77d51fc050db
 	github.com/ipfs/kubo v0.14.0-rc1
 	github.com/libp2p/go-libp2p v0.24.2
 	github.com/multiformats/go-multiaddr v0.8.0
@@ -102,7 +102,7 @@ require (
 	github.com/ipfs/go-merkledag v0.8.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-mfs v0.2.1 // indirect
-	github.com/ipfs/go-namesys v0.6.0 // indirect
+	github.com/ipfs/go-namesys v0.6.1-0.20221212115758-6b648ff31901 // indirect
 	github.com/ipfs/go-path v0.3.0 // indirect
 	github.com/ipfs/go-peertaskqueue v0.8.0 // indirect
 	github.com/ipfs/go-unixfs v0.4.1 // indirect
