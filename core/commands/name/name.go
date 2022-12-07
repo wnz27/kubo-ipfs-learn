@@ -1,7 +1,19 @@
 package name
 
 import (
-	"github.com/ipfs/go-ipfs-cmds"
+	"bytes"
+	"fmt"
+	"io"
+	"strings"
+	"text/tabwriter"
+	"time"
+
+	"github.com/gogo/protobuf/proto"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipns"
+	ipns_pb "github.com/ipfs/go-ipns/pb"
+	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type IpnsEntry struct {
@@ -59,8 +71,78 @@ Resolve the value of a dnslink:
 	},
 
 	Subcommands: map[string]*cmds.Command{
-		"publish": PublishCmd,
-		"resolve": IpnsCmd,
-		"pubsub":  IpnsPubsubCmd,
+		"publish":       PublishCmd,
+		"resolve":       IpnsCmd,
+		"pubsub":        IpnsPubsubCmd,
+		"verify-record": IpnsVerifyRecordCmd,
+	},
+}
+
+var IpnsVerifyRecordCmd = &cmds.Command{
+	Helptext: cmds.HelpText{
+		Tagline: "Verifies an IPNS Record.",
+	},
+	Arguments: []cmds.Argument{
+		cmds.StringArg("key", true, false, "The IPNS key to validate against."),
+		cmds.FileArg("record", true, false, "The path to a file with IPNS record to be verified.").EnableStdin(),
+	},
+	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+		key := strings.TrimPrefix(req.Arguments[0], "/ipns/")
+
+		file, err := cmdenv.GetFileArg(req.Files.Entries())
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		var b bytes.Buffer
+
+		_, err = io.Copy(&b, file)
+		if err != nil {
+			return err
+		}
+
+		var entry ipns_pb.IpnsEntry
+		err = proto.Unmarshal(b.Bytes(), &entry)
+		if err != nil {
+			return err
+		}
+
+		id, err := peer.Decode(key)
+		if err != nil {
+			return err
+		}
+
+		pub, err := id.ExtractPublicKey()
+		if err != nil {
+			return err
+		}
+
+		err = ipns.Validate(pub, &entry)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &entry)
+	},
+	Type: &ipns_pb.IpnsEntry{},
+	Encoders: cmds.EncoderMap{
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ipns_pb.IpnsEntry) error {
+			tw := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+			defer tw.Flush()
+
+			fmt.Fprintf(w, "Record is valid:\n\n")
+			fmt.Fprintf(tw, "Value:\t%q\n", string(out.Value))
+
+			if out.Ttl != nil {
+				fmt.Fprintf(tw, "TTL:\t%d\n", *out.Ttl)
+			}
+
+			validity, err := ipns.GetEOL(out)
+			if err == nil {
+				fmt.Fprintf(tw, "Validity:\t%s\n", validity.Format(time.RFC3339))
+			}
+			return nil
+		}),
 	},
 }
