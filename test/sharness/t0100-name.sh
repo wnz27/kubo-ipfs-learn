@@ -225,6 +225,15 @@ test_name_with_self() {
         grep "argument \"ipfs-path\" is required" curl_out
         '
 
+        # test publishing with TTL
+        test_expect_success "'ipfs name publish --ttl=30m' succeeds" '
+        ipfs name publish --ttl=30m --allow-offline "/ipfs/$HASH_WELCOME_DOCS" && 
+        ipfs routing get "/ipns/$PEERID" > ipns_record &&
+        ipfs name verify-record $PEERID < ipns_record > verify_output &&
+        test_should_contain "$HASH_WELCOME_DOCS" verify_output
+        test_should_contain "1800000000000" verify_output
+        '
+
         test_kill_ipfs_daemon
 
         # Test daemon in offline mode
